@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.width * this.height;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +53,8 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  return Object.assign(Object.create(proto), JSON.parse(json));
 }
 
 
@@ -110,36 +112,115 @@ function fromJSON(/* proto, json */) {
  *  For more examples see unit tests.
  */
 
-const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
-  },
+class CssSelectorBuilder {
+  constructor(callStack = [], resultsArr = []) {
+    this.callStack = callStack;
+    this.resultsArr = resultsArr;
+  }
 
-  id(/* value */) {
-    throw new Error('Not implemented');
-  },
+  element(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
 
-  class(/* value */) {
-    throw new Error('Not implemented');
-  },
+    const checkCallStack = callStack.find((item) => item <= 6);
+    if (checkCallStack === 6) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    } else if (checkCallStack < 6) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(value);
+      callStack.push(6);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
-  },
+  id(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
-  },
+    const checkCallStack = callStack.find((item) => item <= 5);
+    if (checkCallStack === 5) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    } else if (checkCallStack < 5) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(`#${value}`);
+      callStack.push(5);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
-  },
+  class(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
-  },
-};
+    const checkCallStack = callStack.find((item) => item < 4);
+    if (checkCallStack < 4) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(`.${value}`);
+      callStack.push(4);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
 
+  attr(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
+
+    const checkCallStack = callStack.find((item) => item < 3);
+    if (checkCallStack < 3) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(`[${value}]`);
+      callStack.push(3);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
+
+  pseudoClass(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
+
+    const checkCallStack = callStack.find((item) => item < 2);
+    if (checkCallStack < 2) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(`:${value}`);
+      callStack.push(2);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
+
+  pseudoElement(value) {
+    const callStack = this.callStack.slice();
+    const resultsArr = this.resultsArr.slice();
+
+    const checkCallStack = callStack.find((item) => item <= 1);
+    if (checkCallStack === 1) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    } else if (checkCallStack < 1) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    } else {
+      resultsArr.push(`::${value}`);
+      callStack.push(1);
+      return new CssSelectorBuilder(callStack, resultsArr);
+    }
+  }
+
+  combine(selector1, combinator, selector2) {
+    const resultsArr = this.resultsArr.slice();
+    resultsArr.push(`${selector1.stringify()} ${combinator} ${selector2.stringify()}`);
+    return new CssSelectorBuilder([], resultsArr);
+  }
+
+  stringify() {
+    const string = this.resultsArr.join('');
+    return string;
+  }
+}
+
+const cssSelectorBuilder = new CssSelectorBuilder();
 
 module.exports = {
   Rectangle,
